@@ -32,41 +32,37 @@ class UserCreationService(console: Console, clock: Clock) {
   // the method `andThen` on the `IO` trait.
   // Then, we'll refactor `readName` with `andThen`.
   // Note: You can find tests in `exercises.action.fp.UserCreationServiceTest`
-  val readName: IO[String] = {
+  val readName: IO[String] =
     writeLine("What's your name?").andThen(readLine)
-    //    IO {
-    //      writeLine("What's your name?").unsafeRun()
-    //      readLine.unsafeRun()
-    //    }
-  }
 
   // 2. Refactor `readDateOfBirth` so that the code combines the three internal `IO`
   // instead of executing each `IO` one after another using `unsafeRun`.
   // For example, try to use `andThen`.
   // If it doesn't work investigate the methods `map` and `flatMap` on the `IO` trait.
   val readDateOfBirth: IO[LocalDate] =
-  writeLine("What's your date of birth? [dd-mm-yyyy]")
-    .andThen(readLine)
-    .flatMap(line => parseDateOfBirth(line))
+  for {
+    _ <- writeLine("What's your date of birth? [dd-mm-yyyy]")
+    line <- readLine
+    date <- parseDateOfBirth(line)
+  } yield date
 
   // 3. Refactor `readSubscribeToMailingList` and `readUser` using the same techniques as `readDateOfBirth`.
   val readSubscribeToMailingList: IO[Boolean] =
-    writeLine("Would you like to subscribe to our mailing list? [Y/N]")
-      .andThen(readLine)
-      .flatMap(parseLineToBoolean)
+    for {
+     _ <- writeLine("Would you like to subscribe to our mailing list? [Y/N]")
+     line <- readLine
+     res <- parseLineToBoolean(line)
+    } yield res
 
-  val readUser: IO[User] = {
-    readName.flatMap {
-      name => readDateOfBirth.flatMap {
-        dateOfBirth => readSubscribeToMailingList.flatMap {
-          subscribed => clock.now.flatMap { now =>
-            val user = User(name, dateOfBirth, subscribed, now)
-            writeLine(s"User is $user").map(_ => user)
-          }
-        }
-      }
-    }
-  }
+  val readUser: IO[User] =
+    for {
+      name <- readName
+      dateOfBirth <- readDateOfBirth
+      subscribed <- readSubscribeToMailingList
+      now <- clock.now
+      user = User(name, dateOfBirth, subscribed, now)
+      _ <- writeLine(s"User is $user")
+    } yield user
 
   //////////////////////////////////////////////
   // PART 2: For Comprehension
